@@ -68,6 +68,10 @@ export default function PublicBoardPage() {
   }
 
   const handleSend = async () => {
+    if (!input || input.length == 0) {
+      alert('Please add a message')
+      return
+    }
     try {
       if (!challenge) {
         alert('You need to verify first')
@@ -147,11 +151,11 @@ export default function PublicBoardPage() {
         ))}
       </div>
 
-      <div className="fixed-bottom bg-light p-3 border-top">
-        <div className="d-flex">
+      <div className="fixed-bottom bg-light p-3 border-top  mt-mb-5">
+        <div className="d-flex flex-column flex-md-row">
           <input
             type="text"
-            className="form-control me-2 flex-grow-1"
+            className="form-control me-2 flex-grow-1  mb-2 mb-md-0"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             maxLength={400}
@@ -159,7 +163,14 @@ export default function PublicBoardPage() {
             disabled={!isVerified}
           />
           <label className="me-2">Expiry (hours)</label>
-          <input type="number" className="w-auto me-2 form-control" min={1} max={168} value={ttl} onChange={(e) => setTtl(Number(e.target.value))} />
+          <input
+            type="number"
+            className="w-auto me-2 form-control  mb-2 mb-md-0"
+            min={1}
+            max={168}
+            value={ttl}
+            onChange={(e) => setTtl(Number(e.target.value))}
+          />
           <button className="btn btn-success" onClick={handleSend} disabled={!isVerified}>
             Post
           </button>

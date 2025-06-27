@@ -12,7 +12,7 @@ export default function HomePage() {
   const [boardType, setBoardType] = useState<'private' | 'public'>('private')
 
   const handleCreate = async () => {
-    if (!secretWord || !secretCode || !date) {
+    if (!secretWord || secretWord.length == 0 || !secretCode || secretCode.length == 0 || !date || date.length == 0) {
       alert('Please fill in all fields')
       return
     }
