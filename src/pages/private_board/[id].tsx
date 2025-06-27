@@ -89,7 +89,7 @@ export default function PrivateBoardPage() {
         <label className="form-label">Special Date</label>
         <input type="date" className="form-control" value={date} min="0001-01-01" max="9999-12-31" onChange={(e) => setDate(e.target.value)} />
       </div>
-      <div className="row align-items-start">
+      <div className="row align-items-start mb-3">
         <div className="col">
           <button onClick={handleDecode} className="btn btn-primary">
             Decode

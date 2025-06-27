@@ -123,24 +123,29 @@ export default function PublicBoardPage() {
             <label className="form-label">Special Date</label>
             <input type="date" className="form-control" value={date} min="0001-01-01" max="9999-12-31" onChange={(e) => setDate(e.target.value)} />
           </div>
-          <button onClick={handleVerify} className="btn btn-primary mb-4">
-            Verify Identity to Post
-          </button>
+          <div className="row align-items-start mb-3">
+            <div className="col">
+              <button onClick={handleVerify} className="btn btn-primary mb-4">
+                Verify Identity to Post
+              </button>
+            </div>
+            <div className="col">
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input bigger"
+                  type="checkbox"
+                  checked={sortNewestFirst}
+                  onChange={() => setSortNewestFirst((prev) => !prev)}
+                  id="sortSwitch"
+                />
+                <label className="form-check-label ms-2" htmlFor="sortSwitch">
+                  Newest messages on top
+                </label>
+              </div>
+            </div>
+          </div>
         </>
       )}
-
-      <div className="form-check form-switch mb-3">
-        <input
-          className="form-check-input"
-          type="checkbox"
-          checked={sortNewestFirst}
-          onChange={() => setSortNewestFirst((prev) => !prev)}
-          id="sortSwitch"
-        />
-        <label className="form-check-label" htmlFor="sortSwitch">
-          Newest messages on top
-        </label>
-      </div>
 
       <div className="mb-5" style={{ minHeight: 200 }}>
         {sortedMessages.map((msg, idx) => (
