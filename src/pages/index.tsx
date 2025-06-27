@@ -1,4 +1,5 @@
-import { generateKeyPair, generateSigningKeyPair } from '@/lib/crypto/asymetric_encryption'
+import { generateKeyPair } from '@/lib/crypto/asymetric_encryption'
+import { generateSigningKeyPair } from '@/lib/crypto/digital_signatures'
 import axios from 'axios'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
