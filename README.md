@@ -1,40 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Crypto Message Board
 
-## Getting Started
+This is a cryptography exercise.
+At Irdeto I had the honor of working with brilliant cryptographers who cared enough to share some their knowledge.
 
-First, run the development server:
+## Message Board types
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Private Board = Anyone can write (by encrypting with public key), only owner can read (by decrypting with private key).
+- Public Board = Anyone can read (cleartext), only owner can write (by signing).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Private Message Board:
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+### Asymmetric Encryption (confidentiality)
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Purpose: Encrypt data so that only the holder of a private key can decrypt it.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+**How it works:** The sender encrypts the message using the recipient's public encryption key. Only the recipient’s private encryption key can decrypt the messages.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Use in this app:** This approach is used in the Private Message Board to keep messages secret. Anyone can encrypt a message to the board using the public key. However, only the owner, with the private key, can decrypt and read the messages.
 
-## Learn More
+## Public Message Board:
 
-To learn more about Next.js, take a look at the following resources:
+### Digital Signatures (authentication, integrity)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+Purpose: Prove that a message came from the holder of a private key, and that it wasn't tampered with while in transit.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**How it works:** The sender creates a signature of the message using their private signing key. Anyone can verify that signature using the public key.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+**Use in this app:** This approach is used in the Public Message Board to authorize posts and validate posts before saving them. Only someone with the private key (derived from the secret word, secret code and special date) can sign. The system verifies the signature against the board’s public key.
