@@ -12,6 +12,7 @@ interface StoredMessage {
 }
 
 const boards: Record<string, StoredMessage[]> = {}
+const boardNickname: Record<string, string> = {}
 const challenges: Record<string, string> = (globalThis._publicBoardChallenges = globalThis._publicBoardChallenges || {})
 
 const DEFAULT_TTL_HOURS = Number(process.env.TTL_HOURS) || 168 // 7 days default
@@ -23,6 +24,16 @@ function pruneExpiredMessages(messages: StoredMessage[]): StoredMessage[] {
 
 function generateRandomChallenge() {
   return Math.random().toString(36).slice(2, 12) // 10 char random string
+}
+
+const resolveID = (id: string): string | undefined => {
+  if (boards[id] !== undefined) {
+    return id
+  } else if (id in boardNickname) {
+    return boardNickname[id]
+  } else {
+    return undefined
+  }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
@@ -47,7 +58,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
     // Otherwise return messages (pruned)
     boards[id] = pruneExpiredMessages(boards[id])
-    res.status(200).json(boards[id].map(({ text, timestamp }) => ({ text, timestamp })))
+    const resolvedId = resolveID(id)
+    if (resolvedId === undefined) {
+      res.status(404).json({ error: 'ID not found' })
+    } else {
+      res.status(200).json(boards[id].map(({ text, timestamp }) => ({ text, timestamp })))
+    }
     return
   }
 
@@ -88,6 +104,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     res.status(201).json({ message: 'Message saved' })
     return
+  }
+
+  if (req.method === 'PATCH') {
+    const { nickName } = req.body
+
+    if (!nickName || typeof nickName !== 'string') {
+      res.status(400).json({ error: 'Invalid Board Nickname' })
+      return
+    }
+
+    if (nickName in boardNickname) {
+      res.status(400).json({ error: 'Nickname already in use' })
+      return
+    }
+
+    boardNickname[nickName] = id
   }
 
   res.status(405).json({ error: 'Method not allowed' })
