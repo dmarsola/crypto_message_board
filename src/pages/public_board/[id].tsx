@@ -1,8 +1,9 @@
 import { generateSigningKeyPair, signPublicMessage } from '@/lib/crypto/digital_signatures'
 import { Message } from '@/types/general'
 import axios from 'axios'
+import Modal from 'bootstrap/js/dist/modal'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function PublicBoardPage() {
   const router = useRouter()
@@ -10,6 +11,7 @@ export default function PublicBoardPage() {
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [nickname, setNickname] = useState('')
   const [secretWord, setSecretWord] = useState('')
   const [secretCode, setSecretCode] = useState('')
   const [date, setDate] = useState('')
@@ -17,6 +19,34 @@ export default function PublicBoardPage() {
   const [sortNewestFirst, setSortNewestFirst] = useState(true)
   const [challenge, setChallenge] = useState('')
   const [isVerified, setIsVerified] = useState(false)
+  const modalRef = useRef<HTMLDivElement | null>(null)
+  const modalInstanceRef = useRef<Modal | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
+    import('bootstrap').then((bootstrap) => {
+      if (modalRef.current) {
+        modalInstanceRef.current = new bootstrap.Modal(modalRef.current, {
+          backdrop: true,
+          keyboard: true,
+        })
+      }
+    })
+  }, [isClient])
+
+  const openModal = () => {
+    modalInstanceRef.current?.show()
+  }
+
+  const closeModal = () => {
+    modalInstanceRef.current?.hide()
+  }
 
   const fetchMessages = async () => {
     if (!id) return
@@ -47,7 +77,7 @@ export default function PublicBoardPage() {
     try {
       const { privateKey } = generateSigningKeyPair(secretWord, secretCode, date)
       const challengeRes = await axios.get(`/api/public_board/${id}?challenge=true`)
-      const serverChallenge = challengeRes.data.challenge // renamed here
+      const serverChallenge = challengeRes.data.challenge
       const signature = signPublicMessage(serverChallenge, privateKey)
 
       const verifyRes = await axios.post(`/api/public_board/${id}/verify`, {
@@ -126,7 +156,7 @@ export default function PublicBoardPage() {
           <div className="row align-items-start mb-3">
             <div className="col">
               <button onClick={handleVerify} className="btn btn-primary mb-4">
-                Verify Identity to Post
+                Verify Identity
               </button>
             </div>
             <div className="col">
@@ -143,9 +173,63 @@ export default function PublicBoardPage() {
                 </label>
               </div>
             </div>
+            <div className="col">
+              <button type="button" className="btn btn-primary" onClick={openModal}>
+                Rename
+              </button>
+            </div>
           </div>
         </>
       )}
+
+      <div className="modal fade" id="renameModal" tabIndex={-1} aria-labelledby="renameModalLabel" aria-hidden="true" ref={modalRef}>
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title" id="renameModalLabel">
+                Rename Board
+              </h5>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body">
+              <p>Renaming this board makes it easier to share the link</p>
+              <input
+                type="text"
+                className="form-control me-2 flex-grow-1  mb-2 mb-md-0"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={100}
+                placeholder="Type a Nickname for this board..."
+              />
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+                Close
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={nickname.length === 0}
+                onClick={async () => {
+                  const renameStatus = await axios
+                    .patch(`/api/public_board/${id}`, { nickname: nickname })
+                    .then((data) => data.data)
+                    .catch((err) => {
+                      console.error(err)
+                      alert('An issue occurred, try again.')
+                    })
+                  console.log('renameStatus: ', renameStatus)
+                  setIsVerified(false)
+                  setNickname('')
+                  closeModal()
+                }}
+              >
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mb-5" style={{ minHeight: 200 }}>
         {sortedMessages.map((msg, idx) => (

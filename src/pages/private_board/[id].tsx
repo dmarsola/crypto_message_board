@@ -1,8 +1,9 @@
 import { decryptFromPrivateBoard, encryptForPrivateBoard, generateKeyPair } from '@/lib/crypto/asymetric_encryption'
 import { Message, NaclData } from '@/types/general'
 import axios from 'axios'
+import Modal from 'bootstrap/js/dist/modal'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function PrivateBoardPage() {
   const router = useRouter()
@@ -10,12 +11,41 @@ export default function PrivateBoardPage() {
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [nickname, setNickname] = useState('')
   const [secretWord, setSecretWord] = useState('')
   const [secretCode, setSecretCode] = useState('')
   const [date, setDate] = useState('')
   const [decodedMessages, setDecodedMessages] = useState<string[]>([])
   const [ttl, setTtl] = useState(168) // default 7 days
   const [sortNewestFirst, setSortNewestFirst] = useState(true)
+  const modalRef = useRef<HTMLDivElement | null>(null)
+  const modalInstanceRef = useRef<Modal | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
+    import('bootstrap').then((bootstrap) => {
+      if (modalRef.current) {
+        modalInstanceRef.current = new bootstrap.Modal(modalRef.current, {
+          backdrop: true,
+          keyboard: true,
+        })
+      }
+    })
+  }, [isClient])
+
+  const openModal = () => {
+    modalInstanceRef.current?.show()
+  }
+
+  const closeModal = () => {
+    modalInstanceRef.current?.hide()
+  }
 
   const fetchMessages = async () => {
     if (!id) return
@@ -107,6 +137,49 @@ export default function PrivateBoardPage() {
             <label className="form-check-label ms-2" htmlFor="sortSwitch">
               Newest messages on top
             </label>
+          </div>
+        </div>
+        <div className="col">
+          <button type="button" className="btn btn-primary" data-bs-toggle="modal" onClick={openModal}>
+            Rename
+          </button>
+        </div>
+      </div>
+
+      <div className="modal fade" id="renameModal" tabIndex={-1} aria-labelledby="renameModalLabel" aria-hidden="true">
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title" id="renameModalLabel">
+                Modal title
+              </h5>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div className="modal-body">...</div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+                Close
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={nickname.length === 0}
+                onClick={async () => {
+                  const renameStatus = await axios
+                    .patch(`/api/private_board/${id}`, { nickname: nickname })
+                    .then((data) => data.data)
+                    .catch((err) => {
+                      console.error(err)
+                      alert('An issue occurred, try again.')
+                    })
+                  console.log('renameStatus: ', renameStatus)
+                  setNickname('')
+                  closeModal()
+                }}
+              >
+                Save changes
+              </button>
+            </div>
           </div>
         </div>
       </div>
