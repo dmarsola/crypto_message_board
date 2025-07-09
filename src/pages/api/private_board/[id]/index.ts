@@ -20,12 +20,10 @@ function pruneExpiredMessages(messages: StoredMessage[]): StoredMessage[] {
 }
 
 const resolveID = (id: string): string | undefined => {
-  if (boards[id] !== undefined) {
-    return id
-  } else if (id in boardNickname) {
-    return boardNickname[id]
+  if (boardNickname[id.trim()] !== undefined) {
+    return boardNickname[id.trim()]
   } else {
-    return undefined
+    return id.trim()
   }
 }
 
@@ -38,7 +36,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
 
   const resolvedId = resolveID(id)
   if (!resolvedId) {
-    res.status(400).json({ error: 'Missing board id' })
+    res.status(400).json({ error: 'Could not resolve board id' })
     return
   }
 
@@ -91,12 +89,14 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
       return
     }
 
-    if (nickname in boardNickname) {
+    if (nickname.trim() in boardNickname) {
       res.status(400).json({ error: 'Nickname already in use' })
       return
     }
 
-    boardNickname[nickname] = resolvedId
+    boardNickname[nickname.trim()] = resolvedId
+    res.status(201).json({ message: 'Nickname saved' })
+    return
   }
 
   res.status(405).json({ error: 'Method not allowed' })

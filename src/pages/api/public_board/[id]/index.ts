@@ -27,12 +27,10 @@ function generateRandomChallenge() {
 }
 
 const resolveID = (id: string): string | undefined => {
-  if (boards[id] !== undefined) {
-    return id
-  } else if (id in boardNickname) {
-    return boardNickname[id]
+  if (boardNickname[id.trim()] !== undefined) {
+    return boardNickname[id.trim()]
   } else {
-    return undefined
+    return id.trim()
   }
 }
 
@@ -45,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   const resolvedId = resolveID(id)
   if (!resolvedId) {
-    res.status(400).json({ error: 'Missing board id' })
+    res.status(400).json({ error: 'Could not resolve board id' })
     return
   }
 
@@ -112,21 +110,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   if (req.method === 'PATCH') {
-    console.log('inside patch: ')
     const { nickname } = req.body
-    console.log('nickname: ', nickname)
 
     if (!nickname || typeof nickname !== 'string') {
       res.status(400).json({ error: 'Invalid Board Nickname' })
       return
     }
 
-    if (nickname in boardNickname) {
+    if (nickname.trim() in boardNickname) {
       res.status(400).json({ error: 'Nickname already in use' })
       return
     }
 
-    boardNickname[nickname] = resolvedId
+    boardNickname[nickname.trim()] = resolvedId
     res.status(201).json({ message: 'Nickname saved' })
     return
   }

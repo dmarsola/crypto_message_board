@@ -11,6 +11,7 @@ export default function PrivateBoardPage() {
 
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [resolvedId, setResolvedId] = useState<string | undefined>(undefined)
   const [nickname, setNickname] = useState('')
   const [secretWord, setSecretWord] = useState('')
   const [secretCode, setSecretCode] = useState('')
@@ -57,9 +58,21 @@ export default function PrivateBoardPage() {
     }
   }
 
+  const fetchResolvedId = async () => {
+    const res = await axios
+      .get(`/api/private_board/${id}/key`)
+      .then((data) => data.data)
+      .catch((err) => {
+        console.error(err)
+        alert('Cannot resolve board id')
+      })
+    setResolvedId(res.id)
+  }
+
   useEffect(() => {
     if (id) {
       fetchMessages()
+      fetchResolvedId()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
@@ -86,9 +99,9 @@ export default function PrivateBoardPage() {
       alert('Please add a message')
       return
     }
-    const publicKey = id as string
+    const publicKey = resolvedId as string
     const encrypted = encryptForPrivateBoard(input, publicKey)
-    await axios.post(`/api/private_board/${id}`, {
+    await axios.post(`/api/private_board/${resolvedId}`, {
       message: encrypted,
       ttl,
     })
@@ -140,22 +153,31 @@ export default function PrivateBoardPage() {
           </div>
         </div>
         <div className="col">
-          <button type="button" className="btn btn-primary" data-bs-toggle="modal" onClick={openModal}>
+          <button type="button" className="btn btn-primary" onClick={openModal}>
             Rename
           </button>
         </div>
       </div>
-
-      <div className="modal fade" id="renameModal" tabIndex={-1} aria-labelledby="renameModalLabel" aria-hidden="true">
+      <div className="modal fade" id="renameModal" tabIndex={-1} aria-labelledby="renameModalLabel" aria-hidden="true" ref={modalRef}>
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title" id="renameModalLabel">
-                Modal title
+                Rename Board
               </h5>
               <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div className="modal-body">...</div>
+            <div className="modal-body">
+              <p>Renaming this board makes it easier to share the link</p>
+              <input
+                type="text"
+                className="form-control me-2 flex-grow-1  mb-2 mb-md-0"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={100}
+                placeholder="Type a Nickname for this board..."
+              />
+            </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
                 Close
@@ -165,16 +187,16 @@ export default function PrivateBoardPage() {
                 className="btn btn-primary"
                 disabled={nickname.length === 0}
                 onClick={async () => {
-                  const renameStatus = await axios
+                  await axios
                     .patch(`/api/private_board/${id}`, { nickname: nickname })
                     .then((data) => data.data)
                     .catch((err) => {
                       console.error(err)
                       alert('An issue occurred, try again.')
                     })
-                  console.log('renameStatus: ', renameStatus)
                   setNickname('')
                   closeModal()
+                  // TODO: redirect to board nickname
                 }}
               >
                 Save changes
@@ -183,7 +205,6 @@ export default function PrivateBoardPage() {
           </div>
         </div>
       </div>
-
       <div className="mb-5 pb-5" style={{ minHeight: 200 }}>
         {sortedMessages.map((msg, idx) => (
           <div key={idx} className="mb-3 p-2 border rounded">

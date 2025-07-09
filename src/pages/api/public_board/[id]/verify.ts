@@ -10,12 +10,10 @@ const challenges: Record<string, string> = (globalThis._publicBoardChallenges = 
 const boardNickname: Record<string, string> = (globalThis._publicBoardNicknames = globalThis._publicBoardNicknames || {})
 
 const resolveID = (id: string): string | undefined => {
-  if (challenges[id] !== undefined) {
-    return id
-  } else if (id in boardNickname) {
+  if (id in boardNickname) {
     return boardNickname[id]
   } else {
-    return undefined
+    return id
   }
 }
 
@@ -28,7 +26,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
 
   const resolvedId = resolveID(id)
   if (!resolvedId) {
-    res.status(400).json({ valid: false, error: 'Missing board id' })
+    res.status(400).json({ valid: false, error: 'Could not resolve board id' })
     return
   }
 

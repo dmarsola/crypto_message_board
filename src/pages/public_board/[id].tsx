@@ -211,17 +211,17 @@ export default function PublicBoardPage() {
                 className="btn btn-primary"
                 disabled={nickname.length === 0}
                 onClick={async () => {
-                  const renameStatus = await axios
+                  await axios
                     .patch(`/api/public_board/${id}`, { nickname: nickname })
                     .then((data) => data.data)
                     .catch((err) => {
                       console.error(err)
                       alert('An issue occurred, try again.')
                     })
-                  console.log('renameStatus: ', renameStatus)
                   setIsVerified(false)
                   setNickname('')
                   closeModal()
+                  // TODO: redirect to board nickname
                 }}
               >
                 Save changes
