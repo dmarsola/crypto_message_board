@@ -12,6 +12,7 @@ interface StoredMessage {
 }
 
 const boards: Record<string, StoredMessage[]> = {}
+const boardNickname: Record<string, string> = (globalThis._publicBoardNicknames = globalThis._publicBoardNicknames || {})
 const challenges: Record<string, string> = (globalThis._publicBoardChallenges = globalThis._publicBoardChallenges || {})
 
 const DEFAULT_TTL_HOURS = Number(process.env.TTL_HOURS) || 168 // 7 days default
@@ -25,6 +26,14 @@ function generateRandomChallenge() {
   return Math.random().toString(36).slice(2, 12) // 10 char random string
 }
 
+const resolveID = (id: string): string | undefined => {
+  if (boardNickname[id.trim()] !== undefined) {
+    return boardNickname[id.trim()]
+  } else {
+    return id.trim()
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
   const { id } = req.query
   if (!id || typeof id !== 'string') {
@@ -32,8 +41,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
 
-  if (!boards[id]) {
-    boards[id] = []
+  const resolvedId = resolveID(id)
+  if (!resolvedId) {
+    res.status(400).json({ error: 'Could not resolve board id' })
+    return
+  }
+
+  if (!boards[resolvedId]) {
+    boards[resolvedId] = []
   }
 
   // GET with ?challenge=true returns a new challenge string
@@ -41,13 +56,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (req.method === 'GET') {
     if (req.query.challenge === 'true') {
       const challenge = generateRandomChallenge()
-      challenges[id] = challenge
+      challenges[resolvedId] = challenge
       res.status(200).json({ challenge })
       return
     }
-    // Otherwise return messages (pruned)
-    boards[id] = pruneExpiredMessages(boards[id])
-    res.status(200).json(boards[id].map(({ text, timestamp }) => ({ text, timestamp })))
+    if (resolvedId === undefined) {
+      res.status(404).json({ error: 'ID not found' })
+    } else {
+      // Prune expired messages before returning
+      boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
+      res.status(200).json(boards[resolvedId].map(({ text, timestamp }) => ({ text, timestamp })))
+    }
     return
   }
 
@@ -59,27 +78,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       return
     }
 
-    if (!challenges[id] || challenges[id] !== challenge) {
+    if (!challenges[resolvedId] || challenges[resolvedId] !== challenge) {
       res.status(403).json({ error: 'Invalid or expired challenge' })
       return
     }
 
     // Verify signature using board public key (board id)
-    const valid = verifyPublicMessage(message, signature, id)
+    const valid = verifyPublicMessage(message, signature, resolvedId)
     if (!valid) {
       res.status(403).json({ error: 'Invalid signature' })
       return
     }
 
     // Challenge can only be used once
-    delete challenges[id]
+    delete challenges[resolvedId]
 
     let messageTtl = DEFAULT_TTL_HOURS
     if (typeof ttl === 'number' && ttl >= 1 && ttl <= 168) {
       messageTtl = ttl
     }
 
-    boards[id].push({
+    boards[resolvedId].push({
       text: message,
       signature,
       timestamp: Date.now(),
@@ -87,6 +106,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     })
 
     res.status(201).json({ message: 'Message saved' })
+    return
+  }
+
+  if (req.method === 'PATCH') {
+    const { nickname } = req.body
+
+    if (!nickname || typeof nickname !== 'string') {
+      res.status(400).json({ error: 'Invalid Board Nickname' })
+      return
+    }
+
+    if (nickname.trim() in boardNickname) {
+      res.status(400).json({ error: 'Nickname already in use' })
+      return
+    }
+
+    boardNickname[nickname.trim()] = resolvedId
+    res.status(201).json({ message: 'Nickname saved' })
     return
   }
 

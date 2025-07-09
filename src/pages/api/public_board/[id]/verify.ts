@@ -7,11 +7,26 @@ interface Data {
 }
 
 const challenges: Record<string, string> = (globalThis._publicBoardChallenges = globalThis._publicBoardChallenges || {})
+const boardNickname: Record<string, string> = (globalThis._publicBoardNicknames = globalThis._publicBoardNicknames || {})
+
+const resolveID = (id: string): string | undefined => {
+  if (id in boardNickname) {
+    return boardNickname[id]
+  } else {
+    return id
+  }
+}
 
 export default function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
   const { id } = req.query
   if (!id || typeof id !== 'string') {
     res.status(400).json({ valid: false, error: 'Missing board id' })
+    return
+  }
+
+  const resolvedId = resolveID(id)
+  if (!resolvedId) {
+    res.status(400).json({ valid: false, error: 'Could not resolve board id' })
     return
   }
 
@@ -29,7 +44,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
   }
 
   // Validate challenge
-  const expectedChallenge = challenges[id]
+  const expectedChallenge = challenges[resolvedId]
   // WARNING - Should not delete the challenge as it is rechecked and deleted when the user posts a message.
   if (!expectedChallenge || expectedChallenge !== challenge) {
     res.status(403).json({ valid: false, error: 'Invalid or expired challenge' })
@@ -37,7 +52,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
   }
 
   // Verify the signature against the board's public key
-  const valid = verifyPublicMessage(challenge, signature, id)
+  const valid = verifyPublicMessage(challenge, signature, resolvedId)
   if (!valid) {
     res.status(403).json({ valid: false, error: 'Invalid signature' })
     return

@@ -10,12 +10,21 @@ interface StoredMessage {
 }
 
 const boards: Record<string, StoredMessage[]> = {}
+const boardNickname: Record<string, string> = (globalThis._privateBoardNicknames = globalThis._privateBoardNicknames || {})
 
 const DEFAULT_TTL_HOURS = Number(process.env.TTL_HOURS) || 168 // 7 days default
 
 function pruneExpiredMessages(messages: StoredMessage[]): StoredMessage[] {
   const now = Date.now()
   return messages.filter((msg) => now - msg.timestamp < msg.ttl * 3600000)
+}
+
+const resolveID = (id: string): string | undefined => {
+  if (boardNickname[id.trim()] !== undefined) {
+    return boardNickname[id.trim()]
+  } else {
+    return id.trim()
+  }
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
@@ -25,15 +34,25 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     return
   }
 
+  const resolvedId = resolveID(id)
+  if (!resolvedId) {
+    res.status(400).json({ error: 'Could not resolve board id' })
+    return
+  }
+
   // Initialize board if missing
-  if (!boards[id]) {
-    boards[id] = []
+  if (!boards[resolvedId]) {
+    boards[resolvedId] = []
   }
 
   if (req.method === 'GET') {
-    // Prune expired messages before returning
-    boards[id] = pruneExpiredMessages(boards[id])
-    res.status(200).json(boards[id].map(({ text, timestamp, ttl }) => ({ text, timestamp, ttl })))
+    if (resolvedId === undefined) {
+      res.status(404).json({ error: 'ID not found' })
+    } else {
+      // Prune expired messages before returning
+      boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
+      res.status(200).json(boards[resolvedId].map(({ text, timestamp, ttl }) => ({ text, timestamp, ttl })))
+    }
     return
   }
 
@@ -52,13 +71,31 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     }
 
     // Add message with timestamp and TTL
-    boards[id].push({
+    boards[resolvedId].push({
       text: message,
       timestamp: Date.now(),
       ttl: messageTtl,
     })
 
     res.status(201).json({ message: 'Message saved' })
+    return
+  }
+
+  if (req.method === 'PATCH') {
+    const { nickname } = req.body
+
+    if (!nickname || typeof nickname !== 'string') {
+      res.status(400).json({ error: 'Invalid Board Nickname' })
+      return
+    }
+
+    if (nickname.trim() in boardNickname) {
+      res.status(400).json({ error: 'Nickname already in use' })
+      return
+    }
+
+    boardNickname[nickname.trim()] = resolvedId
+    res.status(201).json({ message: 'Nickname saved' })
     return
   }
 
