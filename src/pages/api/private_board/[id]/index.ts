@@ -1,4 +1,5 @@
-import { Message } from '@/types/general'
+import { defaultReportData } from '@/constants/general'
+import { Message, ReportData } from '@/types/general'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = Message[] | { error: string } | { message: string }
@@ -11,12 +12,20 @@ interface StoredMessage {
 
 const boards: Record<string, StoredMessage[]> = {}
 const boardNickname: Record<string, string> = (globalThis._privateBoardNicknames = globalThis._privateBoardNicknames || {})
+const reportData: ReportData = (globalThis._publicReportData = globalThis._publicReportData || defaultReportData)
 
 const DEFAULT_TTL_HOURS = Number(process.env.TTL_HOURS) || 168 // 7 days default
 
 function pruneExpiredMessages(messages: StoredMessage[]): StoredMessage[] {
   const now = Date.now()
-  return messages.filter((msg) => now - msg.timestamp < msg.ttl * 3600000)
+  return messages.filter((msg) => {
+    if (now - msg.timestamp < msg.ttl * 3600000) {
+      return true
+    } else {
+      reportData.private_expired_messages += 1
+      return false
+    }
+  })
 }
 
 const resolveID = (id: string): string | undefined => {
@@ -42,6 +51,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
 
   // Initialize board if missing
   if (!boards[resolvedId]) {
+    reportData.private_boards += 1
     boards[resolvedId] = []
   }
 
@@ -51,6 +61,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     } else {
       // Prune expired messages before returning
       boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
+      reportData.private_board_views += 1
       res.status(200).json(boards[resolvedId].map(({ text, timestamp, ttl }) => ({ text, timestamp, ttl })))
     }
     return
@@ -76,7 +87,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
       timestamp: Date.now(),
       ttl: messageTtl,
     })
-
+    reportData.private_board_messages_posted += 1
     res.status(201).json({ message: 'Message saved' })
     return
   }
@@ -95,6 +106,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     }
 
     boardNickname[nickname.trim()] = resolvedId
+    reportData.private_board_nicknames += 1
     res.status(201).json({ message: 'Nickname saved' })
     return
   }

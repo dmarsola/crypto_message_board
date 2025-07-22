@@ -18,6 +18,7 @@ export default function PrivateBoardPage() {
   const [secretWord, setSecretWord] = useState('')
   const [secretCode, setSecretCode] = useState('')
   const [date, setDate] = useState('')
+  const [showDate, setShowDate] = useState(true)
   const [decodedMessages, setDecodedMessages] = useState<string[]>([])
   const [ttl, setTtl] = useState(168) // default 7 days
   const [sortNewestFirst, setSortNewestFirst] = useState(true)
@@ -142,15 +143,29 @@ export default function PrivateBoardPage() {
 
         <div className="mb-3">
           <label className="form-label">Secret Word</label>
-          <input type="text" className="form-control" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} />
+          <input type="password" className="form-control" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} />
         </div>
         <div className="mb-3">
           <label className="form-label">Secret Code</label>
-          <input type="text" className="form-control" value={secretCode} onChange={(e) => setSecretCode(e.target.value)} />
+          <input type="password" className="form-control" value={secretCode} onChange={(e) => setSecretCode(e.target.value)} />
         </div>
         <div className="mb-3">
           <label className="form-label">Special Date</label>
-          <input type="date" className="form-control" value={date} min="0001-01-01" max="9999-12-31" onChange={(e) => setDate(e.target.value)} />
+          <input
+            type={showDate ? 'date' : 'password'}
+            className="form-control"
+            value={date}
+            min="0001-01-01"
+            max="9999-12-31"
+            placeholder="YYYY-MM-DD"
+            onChange={(e) => {
+              const newDate = e.target.value
+              setDate(newDate)
+              setShowDate(false)
+            }}
+            onBlur={() => setShowDate(false)}
+            onFocus={() => setShowDate(true)}
+          />
         </div>
         <div className="row align-items-start mb-3">
           <div className="col">

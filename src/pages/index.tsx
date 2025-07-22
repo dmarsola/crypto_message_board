@@ -9,6 +9,7 @@ export default function HomePage() {
   const [secretWord, setSecretWord] = useState('')
   const [secretCode, setSecretCode] = useState('')
   const [date, setDate] = useState('')
+  const [showDate, setShowDate] = useState(true)
   const [boardType, setBoardType] = useState<'private' | 'public'>('private')
 
   const handleCreate = async () => {
@@ -38,15 +39,29 @@ export default function HomePage() {
         <h1 className="text-center mb-4">Create a Message Board</h1>
         <div className="mb-3">
           <label className="form-label">Secret Word</label>
-          <input type="text" className="form-control" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} />
+          <input type="password" className="form-control" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} />
         </div>
         <div className="mb-3">
           <label className="form-label">Secret Code</label>
-          <input type="text" className="form-control" value={secretCode} onChange={(e) => setSecretCode(e.target.value)} />
+          <input type="password" className="form-control" value={secretCode} onChange={(e) => setSecretCode(e.target.value)} />
         </div>
         <div className="mb-3">
           <label className="form-label">Special Date</label>
-          <input type="date" className="form-control" value={date} min="0001-01-01" max="9999-12-31" onChange={(e) => setDate(e.target.value)} />
+          <input
+            type={showDate ? 'date' : 'password'}
+            className="form-control"
+            value={date}
+            min="0001-01-01"
+            max="9999-12-31"
+            placeholder="YYYY-MM-DD"
+            onChange={(e) => {
+              const newDate = e.target.value
+              setDate(newDate)
+              setShowDate(false)
+            }}
+            onBlur={() => setShowDate(false)}
+            onFocus={() => setShowDate(true)}
+          />
         </div>
 
         <div className="mb-3">

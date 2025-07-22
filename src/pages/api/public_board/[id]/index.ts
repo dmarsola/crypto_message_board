@@ -1,5 +1,6 @@
+import { defaultReportData } from '@/constants/general'
 import { verifyPublicMessage } from '@/lib/crypto/digital_signatures'
-import { Message } from '@/types/general'
+import { Message, ReportData } from '@/types/general'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = Message[] | { error: string } | { challenge: string } | { valid: boolean } | { message: string }
@@ -14,12 +15,20 @@ interface StoredMessage {
 const boards: Record<string, StoredMessage[]> = {}
 const boardNickname: Record<string, string> = (globalThis._publicBoardNicknames = globalThis._publicBoardNicknames || {})
 const challenges: Record<string, string> = (globalThis._publicBoardChallenges = globalThis._publicBoardChallenges || {})
+const reportData: ReportData = (globalThis._publicReportData = globalThis._publicReportData || defaultReportData)
 
 const DEFAULT_TTL_HOURS = Number(process.env.TTL_HOURS) || 168 // 7 days default
 
 function pruneExpiredMessages(messages: StoredMessage[]): StoredMessage[] {
   const now = Date.now()
-  return messages.filter((msg) => now - msg.timestamp < msg.ttl * 3600000)
+  return messages.filter((msg) => {
+    if (now - msg.timestamp < msg.ttl * 3600000) {
+      return true
+    } else {
+      reportData.public_expired_messages += 1
+      return false
+    }
+  })
 }
 
 function generateRandomChallenge() {
@@ -47,7 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
 
+  // Initialize board if missing
   if (!boards[resolvedId]) {
+    reportData.public_boards += 1
     boards[resolvedId] = []
   }
 
@@ -65,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     } else {
       // Prune expired messages before returning
       boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
+      reportData.public_board_views += 1
       res.status(200).json(boards[resolvedId].map(({ text, timestamp }) => ({ text, timestamp })))
     }
     return
@@ -104,7 +116,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       timestamp: Date.now(),
       ttl: messageTtl,
     })
-
+    reportData.public_board_messages_posted += 1
     res.status(201).json({ message: 'Message saved' })
     return
   }
@@ -123,6 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     boardNickname[nickname.trim()] = resolvedId
+    reportData.public_board_nicknames += 1
     res.status(201).json({ message: 'Nickname saved' })
     return
   }
