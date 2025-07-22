@@ -56,12 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return
   }
 
-  // Initialize board if missing
-  if (!boards[resolvedId]) {
-    reportData.public_boards += 1
-    boards[resolvedId] = []
-  }
-
   // GET with ?challenge=true returns a new challenge string
   // TODO: move this to the verify endpoint
   if (req.method === 'GET') {
@@ -74,6 +68,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     if (resolvedId === undefined) {
       res.status(404).json({ error: 'ID not found' })
     } else {
+      if (!boards[resolvedId]) {
+        // Initialize board
+        reportData.public_boards += 1
+        boards[resolvedId] = []
+      }
+
       // Prune expired messages before returning
       boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
       reportData.public_board_views += 1

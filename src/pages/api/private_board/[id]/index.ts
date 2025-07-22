@@ -49,16 +49,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     return
   }
 
-  // Initialize board if missing
-  if (!boards[resolvedId]) {
-    reportData.private_boards += 1
-    boards[resolvedId] = []
-  }
-
   if (req.method === 'GET') {
     if (resolvedId === undefined) {
       res.status(404).json({ error: 'ID not found' })
     } else {
+      if (!boards[resolvedId]) {
+        // Initialize board
+        reportData.private_boards += 1
+        boards[resolvedId] = []
+      }
       // Prune expired messages before returning
       boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
       reportData.private_board_views += 1
