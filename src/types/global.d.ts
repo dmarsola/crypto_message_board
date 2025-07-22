@@ -4,6 +4,7 @@ declare global {
   var _publicBoardChallenges: Record<string, string> | undefined
   var _privateBoardNicknames: Record<string, string> | undefined
   var _publicBoardNicknames: Record<string, string> | undefined
+  var _publicReportData: ReportData
 }
 
 declare module 'bootstrap/dist/js/bootstrap.bundle.min.js'

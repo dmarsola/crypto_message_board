@@ -1,3 +1,5 @@
+import { defaultReportData } from '@/constants/general'
+
 export interface Message {
   text: string
   timestamp: number
@@ -9,3 +11,5 @@ export interface NaclData {
   nonce: string
   ephemeralPublicKey: string
 }
+
+export type ReportData = typeof defaultReportData
