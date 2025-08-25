@@ -1,4 +1,5 @@
 import BootstrapClient from '@/components/bootstrap_client'
+import Donation from '@/components/donation'
 import { generateSigningKeyPair, signPublicMessage } from '@/lib/crypto/digital_signatures'
 import { Message } from '@/types/general'
 import { BootstrapModal } from '@/types/global'
@@ -239,6 +240,7 @@ export default function PublicBoardPage() {
                 <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
                   Close
                 </button>
+                <Donation />
                 <button
                   type="button"
                   className="btn btn-primary"
