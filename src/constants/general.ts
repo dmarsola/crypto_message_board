@@ -11,3 +11,8 @@ export const defaultReportData = {
   private_board_nicknames: 0,
   private_board_messages_posted: 0,
 }
+
+export const BOARD_TYPE = {
+  PRIVATE: 'PRIVATE',
+  PUBLIC: 'PUBLIC',
+}

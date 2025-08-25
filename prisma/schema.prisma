@@ -1,0 +1,41 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url= env("DATABASE_URL")
+}
+
+model Board {
+    id          String      @id @unique
+    type        String
+    Messages    Message[]
+    Nickname    Nickname?
+    Challenge   Challenge?
+    @@unique([id, type])
+}
+
+model Message {
+    id          String      @id @unique @default(cuid())
+    text        String
+    timestamp   Int
+    ttl         Int
+    deleted     Boolean     @default(false)
+    boardId     String
+    board       Board       @relation(fields: [boardId], references: [id])
+    signature   String?
+}
+
+model Nickname {
+    boardId     String      @unique    
+    name        String      @unique
+    board       Board       @relation(fields: [boardId], references: [id])
+    @@id([name, boardId])
+}
+
+model Challenge {
+    boardId     String      @unique
+    board       Board       @relation(fields: [boardId], references: [id])
+    challenge   String
+}

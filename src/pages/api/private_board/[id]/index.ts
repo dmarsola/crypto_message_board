@@ -1,5 +1,6 @@
 import { defaultReportData } from '@/constants/general'
 import { Message, ReportData } from '@/types/general'
+import { PrismaClient } from '@prisma/client'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type Data = Message[] | { error: string } | { message: string }
@@ -36,7 +37,8 @@ const resolveID = (id: string): string | undefined => {
   }
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
+  const prisma = new PrismaClient()
   const { id } = req.query
   if (!id || typeof id !== 'string') {
     res.status(400).json({ error: 'Missing board id' })
@@ -53,13 +55,23 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
     if (resolvedId === undefined) {
       res.status(404).json({ error: 'ID not found' })
     } else {
+      const private_board = await prisma.board.findUnique({
+        where: {
+          id: resolvedId,
+        },
+        include: {
+          Messages: true,
+        },
+      })
+      console.log('private_board from DB: ', private_board)
       if (!boards[resolvedId]) {
         // Initialize board
         reportData.private_boards += 1
         boards[resolvedId] = []
+      } else {
+        // Prune expired messages before returning
+        boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
       }
-      // Prune expired messages before returning
-      boards[resolvedId] = pruneExpiredMessages(boards[resolvedId])
       reportData.private_board_views += 1
       res.status(200).json(boards[resolvedId].map(({ text, timestamp, ttl }) => ({ text, timestamp, ttl })))
     }
@@ -86,6 +98,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse<Data>)
       timestamp: Date.now(),
       ttl: messageTtl,
     })
+    const private_board = await prisma.message.create({
+      data: {
+        text: message,
+        timestamp: Date.now(),
+        ttl: messageTtl,
+        boardId: resolvedId,
+      },
+    })
+    console.log('private_board from DB: ', private_board)
     reportData.private_board_messages_posted += 1
     res.status(201).json({ message: 'Message saved' })
     return
